@@ -17,7 +17,7 @@ import java.util.List;
  *
  * <pre>
  * POST /lab2/ingest              문서 3종을 읽어 넣는다. 두 번 눌러도 청크 수가 같아야 한다
- * GET  /lab2/retrieve?q=&topK=   답변을 만들기 전에 검색부터 눈으로 본다
+ * GET  /lab2/retrieve?q=&topK=&threshold=   답변을 만들기 전에 검색부터 눈으로 본다
  * </pre>
  */
 @RestController
@@ -44,8 +44,9 @@ public class Lab2Controller {
 
     @GetMapping("/lab2/retrieve")            // 답변을 만들기 전에 이것부터 만든다
     public List<Chunk> retrieve(@RequestParam String q,
-                                @RequestParam(defaultValue = "4") int topK) {
-        return retrieveService.retrieve(q, topK);
+                                @RequestParam(defaultValue = "4") int topK,
+                                @RequestParam(defaultValue = "0.5") double threshold) {
+        return retrieveService.retrieve(q, topK, threshold);
     }
 
     /** return-policy.md → return-policy. 이 이름이 그대로 답변의 출처가 된다. */

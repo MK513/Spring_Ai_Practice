@@ -25,10 +25,14 @@ public class Lab2RetrieveService {
         this.vectorStore = vectorStore;
     }
 
-    public List<Chunk> retrieve(String q, int topK) {
+    /**
+     * @param threshold 이 점수 아래는 근거로 치지 않는다. 처음에는 0 으로 두고 점수 분포부터 본다 —
+     *                  한국어 짧은 질문은 0.3~0.45 에 몰려서, 0.5 로 두면 전부 걸러진다.
+     */
+    public List<Chunk> retrieve(String q, int topK, double threshold) {
         return vectorStore.similaritySearch(SearchRequest.builder()
                         .query(q).topK(topK)
-                        .similarityThreshold(0.5)     // 낮은 점수는 근거가 아니다
+                        .similarityThreshold(threshold)
                         .build())
                 .stream()
                 .map(d -> new Chunk(source(d),
