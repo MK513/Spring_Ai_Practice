@@ -1,5 +1,7 @@
 package skala.springai.day2;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +25,7 @@ import java.util.List;
  * </pre>
  */
 @RestController
+@Tag(name = "Day2 실습 - 사내 문서 Q&A")
 public class Lab2Controller {
 
     private final Lab2IngestService ingestService;
@@ -40,6 +43,8 @@ public class Lab2Controller {
         this.docs = docs;
     }
 
+    @Operation(summary = "문서 3종을 읽어 넣는다",
+               description = "두 번 눌러도 청크 수가 같아야 한다 — 재색인")
     @PostMapping("/lab2/ingest")
     public List<IngestResult> ingest() {
         return Arrays.stream(docs)
@@ -47,6 +52,8 @@ public class Lab2Controller {
                 .toList();
     }
 
+    @Operation(summary = "검색을 눈으로 본다",
+               description = "답변을 만들기 전에 이것부터 본다. 점수를 보고 판단한다")
     @GetMapping("/lab2/retrieve")            // 답변을 만들기 전에 이것부터 만든다
     public List<Chunk> retrieve(@RequestParam String q,
                                 @RequestParam(defaultValue = "4") int topK,
@@ -54,6 +61,8 @@ public class Lab2Controller {
         return retrieveService.retrieve(q, topK, threshold);
     }
 
+    @Operation(summary = "근거로만 답한다",
+               description = "근거에 없으면 \"확인되지 않습니다\" — 지어내지 않는다")
     @PostMapping("/lab2/ask")
     public AnswerDto ask(@RequestParam String q,
                          @RequestParam(defaultValue = "4") int topK,
