@@ -40,6 +40,10 @@ public class Lab2AskService {
         this.chatClient = builder.build();
     }
 
+    public AnswerDto ask(String question) {
+        return ask(question, 4, 0.25);
+    }
+
     public AnswerDto ask(String question, int topK, double threshold) {
         List<Document> docs = retrieveService.search(question, topK, threshold);
         if (docs.isEmpty()) {
