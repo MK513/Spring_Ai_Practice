@@ -16,6 +16,9 @@ spring:
       chat:
         options:
           model: gpt-4o-mini
+      embedding:
+        options:
+          model: text-embedding-3-small
 
 server:
   port: 8080
@@ -28,7 +31,7 @@ springdoc:
 
 logging:
   level:
-    skala.springai.day1: DEBUG
+    skala.springai: DEBUG
 
 management:
   endpoints:
