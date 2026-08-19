@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import skala.springai.day2.Lab2IngestService.IngestResult;
+import skala.springai.day2.Lab2AskService.AnswerDto;
 import skala.springai.day2.Lab2RetrieveService.Chunk;
 
 import java.util.Arrays;
@@ -18,6 +19,7 @@ import java.util.List;
  * <pre>
  * POST /lab2/ingest              문서 3종을 읽어 넣는다. 두 번 눌러도 청크 수가 같아야 한다
  * GET  /lab2/retrieve?q=&topK=&threshold=   답변을 만들기 전에 검색부터 눈으로 본다
+ * POST /lab2/ask?q=                         근거로만 답한다. 근거에 없으면 지어내지 않는다
  * </pre>
  */
 @RestController
@@ -25,13 +27,16 @@ public class Lab2Controller {
 
     private final Lab2IngestService ingestService;
     private final Lab2RetrieveService retrieveService;
+    private final Lab2AskService askService;
     private final Resource[] docs;
 
     public Lab2Controller(Lab2IngestService ingestService,
                           Lab2RetrieveService retrieveService,
+                          Lab2AskService askService,
                           @Value("classpath:lab2-docs/*.md") Resource[] docs) {
         this.ingestService = ingestService;
         this.retrieveService = retrieveService;
+        this.askService = askService;
         this.docs = docs;
     }
 
@@ -47,6 +52,13 @@ public class Lab2Controller {
                                 @RequestParam(defaultValue = "4") int topK,
                                 @RequestParam(defaultValue = "0.5") double threshold) {
         return retrieveService.retrieve(q, topK, threshold);
+    }
+
+    @PostMapping("/lab2/ask")
+    public AnswerDto ask(@RequestParam String q,
+                         @RequestParam(defaultValue = "4") int topK,
+                         @RequestParam(defaultValue = "0.5") double threshold) {
+        return askService.ask(q, topK, threshold);
     }
 
     /** return-policy.md → return-policy. 이 이름이 그대로 답변의 출처가 된다. */
