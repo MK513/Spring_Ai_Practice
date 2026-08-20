@@ -17,7 +17,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * Day 3 실습 — 상담 에이전트.
  *
  * <pre>
- * POST /lab3/chat?userId=&amp;message=       주문 질문이면 도구를 부른다
+ * POST /lab3/chat?userId=&amp;sessionId=&amp;message=  주문 질문이면 도구를 부른다
+ * GET  /lab3/chat/history?userId=&amp;sessionId=    무엇이 기억에 남았는지 본다
  * GET  /lab3/admin/tickets/pending        접수된 요청 목록 (사람만 본다)
  * POST /lab3/admin/tickets/{no}/approve   승인 (사람만 누른다)
  * </pre>
@@ -37,8 +38,17 @@ public class Day3Controller {
     @Operation(summary = "상담 대화",
                description = "주문 질문이면 도구를 부른다. 남의 주문은 조회되지 않는다")
     @PostMapping("/lab3/chat")
-    public String chat(@RequestParam String userId, @RequestParam String message) {
-        return chatService.chat(message, userId);
+    public String chat(@RequestParam String userId,
+                       @RequestParam(defaultValue = "s1") String sessionId,
+                       @RequestParam String message) {
+        return chatService.chat(message, userId, sessionId);
+    }
+
+    @Operation(summary = "대화 이력", description = "차단된 문장이 저장됐는지 확인한다 — Advisor 순서 실험")
+    @GetMapping("/lab3/chat/history")
+    public List<String> history(@RequestParam String userId,
+                                @RequestParam(defaultValue = "s1") String sessionId) {
+        return chatService.history(userId, sessionId);
     }
 
     // ── 아래 둘은 담당자용이다. @Tool 이 없으니 모델은 존재를 모른다 ──────────────
