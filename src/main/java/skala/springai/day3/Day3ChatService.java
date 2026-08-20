@@ -13,6 +13,7 @@ import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvi
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
@@ -41,13 +42,23 @@ public class Day3ChatService {
     private final TicketTools ticketTools;
     private final ChatMemory memory;
 
+    /**
+     * 비용 공격 방어 — 레드팀에서 뚫린 자리다.
+     *
+     * <p>13,600자를 붙여 넣었더니 그대로 모델에 실려 3,771 토큰을 썼다. 길이 제한이 없었다.
+     * <b>프롬프트로 "길게 쓰지 마라"고 지시해 봐야 소용없다.</b> 지시는 지켜지지 않을 수 있고,
+     * 애초에 그 지시를 판단하려면 이미 긴 입력을 모델에 보낸 뒤다. 코드가 먼저 자른다.
+     */
+    private static final int 입력_최대_글자 = 2000;
+
     public Day3ChatService(ChatClient.Builder builder,
                            OrderTools orderTools,
                            TicketTools ticketTools,
                            AuditAdvisor auditAdvisor,
                            TokenMeterAdvisor tokenMeterAdvisor,
                            ChatMemory memory,
-                           VectorStore vectorStore) {
+                           VectorStore vectorStore,
+                           @Value("${lab3.safeguard.order:100}") int safeguardOrder) {
         this.chat = builder
                 .defaultSystem("""
                         너는 이커머스 고객 상담원이다.
@@ -62,7 +73,9 @@ public class Day3ChatService {
                         SafeGuardAdvisor.builder()                      // order 100 차단
                                 .sensitiveWords(List.of("주민등록번호", "카드번호", "비밀번호"))
                                 .failureResponse("민감정보가 포함된 요청은 처리할 수 없습니다.")
-                                .order(100)
+                                // 실습 — 이 값을 250 으로 올리면 Memory(200) 보다 뒤가 된다.
+                                // 그러면 차단됐어야 할 문장이 이력에 남는다. 순서가 곧 정책이다.
+                                .order(safeguardOrder)
                                 .build(),
                         MessageChatMemoryAdvisor.builder(memory)        // order 200 기억
                                 .order(200)
@@ -92,6 +105,11 @@ public class Day3ChatService {
     }
 
     public String chat(String message, String userId, String sessionId) {
+        // 모델을 부르기 전에 자른다 — 부른 뒤에 자르면 이미 돈이 나갔다
+        if (message != null && message.length() > 입력_최대_글자) {
+            log.warn("[GUARD] 입력 길이 초과 {}자 user={}", message.length(), userId);
+            return "요청이 너무 깁니다. %d자 이내로 줄여 주세요.".formatted(입력_최대_글자);
+        }
         String conversationId = 대화ID(userId, sessionId);
         // 이 요청이 남기는 모든 로그에 같은 추적 ID 를 붙인다 — 나중에 한 줄로 이어 볼 수 있다
         MDC.put("traceId", UUID.randomUUID().toString().substring(0, 8));
