@@ -30,6 +30,9 @@ springdoc:
     display-request-duration: true
 
 logging:
+  pattern:
+    # 한 요청을 처음부터 끝까지 따라가려면 추적 ID 가 모든 줄에 있어야 한다
+    level: "%5p [%X{traceId:-}]"
   level:
     skala.springai: DEBUG
 

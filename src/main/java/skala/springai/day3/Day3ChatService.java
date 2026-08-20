@@ -2,7 +2,10 @@ package skala.springai.day3;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.UUID;
 
+import org.slf4j.MDC;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SafeGuardAdvisor;
@@ -42,6 +45,7 @@ public class Day3ChatService {
                            OrderTools orderTools,
                            TicketTools ticketTools,
                            AuditAdvisor auditAdvisor,
+                           TokenMeterAdvisor tokenMeterAdvisor,
                            ChatMemory memory,
                            VectorStore vectorStore) {
         this.chat = builder
@@ -69,7 +73,8 @@ public class Day3ChatService {
                                         .similarityThreshold(0.25)      // Day 2 에서 실측해 정한 값
                                         .build())
                                 .order(300)
-                                .build())
+                                .build(),
+                        tokenMeterAdvisor)                              // order 900 가장 안쪽
                 .build();
         this.orderTools = orderTools;
         this.ticketTools = ticketTools;
@@ -88,16 +93,22 @@ public class Day3ChatService {
 
     public String chat(String message, String userId, String sessionId) {
         String conversationId = 대화ID(userId, sessionId);
-        log.info("[CHAT] conv={} message={}", conversationId, message);
-        return chat.prompt()
-                .user(message)
-                .tools(orderTools, ticketTools)
-                // 사용자 ID 는 프롬프트가 아니라 이 통로로 — 모델이 바꿔 부를 수 없다
-                .toolContext(Map.of("userId", userId))
-                // 어느 대화에 이어 붙일지 — 메모리 Advisor 가 이 값을 본다
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
-                .call()
-                .content();
+        // 이 요청이 남기는 모든 로그에 같은 추적 ID 를 붙인다 — 나중에 한 줄로 이어 볼 수 있다
+        MDC.put("traceId", UUID.randomUUID().toString().substring(0, 8));
+        try {
+            log.info("[CHAT] conv={} message={}", conversationId, message);
+            return chat.prompt()
+                    .user(message)
+                    .tools(orderTools, ticketTools)
+                    // 사용자 ID 는 프롬프트가 아니라 이 통로로 — 모델이 바꿔 부를 수 없다
+                    .toolContext(Map.of("userId", userId))
+                    // 어느 대화에 이어 붙일지 — 메모리 Advisor 가 이 값을 본다
+                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
+                    .call()
+                    .content();
+        } finally {
+            MDC.remove("traceId");
+        }
     }
 
     /** 대화 이력 — Advisor 순서를 바꿔 보고 무엇이 저장됐는지 눈으로 확인할 때 쓴다. */
