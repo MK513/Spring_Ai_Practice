@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Step 1 — 도구를 붙여 대화한다.
+ * Step 1·3 — 도구를 붙여 대화한다.
  *
  * <p>모델은 함수를 실행하지 않는다. <b>어떤 함수를 어떤 인자로 부를지 알려 줄 뿐</b>이고
  * 실행은 Spring AI 가 우리 코드로 한다. 그래서 권한 검증은 전적으로 우리 몫이다.
@@ -19,15 +19,18 @@ public class Day3ChatService {
 
     private final ChatClient chat;
     private final OrderTools orderTools;
+    private final TicketTools ticketTools;
 
     /**
      * 창구를 빈으로 내지 않고 여기서 만든다.
      *
-     * <p>{@code ChatClient} 를 빈으로 하나 더 만들면 Day 1 의
-     * {@code OrderSummaryService} 가 주입받을 후보가 둘이 되어 앱이 뜨지 않는다.
-     * 남의 장(章) 코드를 건드리지 않으려면 우리 쪽에서 만들어 쓰는 편이 낫다.
+     * <p>{@code ChatClient} 를 빈으로 하나 더 만들면 Day 1 의 {@code OrderSummaryService}
+     * 가 주입받을 후보가 둘이 되어 앱이 아예 뜨지 않는다. 남의 장 코드를 건드리지 않으려면
+     * 우리 쪽에서 만들어 쓰는 편이 낫다.
      */
-    public Day3ChatService(ChatClient.Builder builder, OrderTools orderTools) {
+    public Day3ChatService(ChatClient.Builder builder,
+                           OrderTools orderTools,
+                           TicketTools ticketTools) {
         this.chat = builder
                 .defaultSystem("""
                         너는 이커머스 고객 상담원이다.
@@ -38,13 +41,14 @@ public class Day3ChatService {
                         """)
                 .build();
         this.orderTools = orderTools;
+        this.ticketTools = ticketTools;
     }
 
     public String chat(String message, String userId) {
         log.info("[CHAT] user={} message={}", userId, message);
         return chat.prompt()
                 .user(message)
-                .tools(orderTools)
+                .tools(orderTools, ticketTools)
                 // 사용자 ID 는 프롬프트가 아니라 이 통로로 — 모델이 바꿔 부를 수 없다
                 .toolContext(Map.of("userId", userId))
                 .call()
